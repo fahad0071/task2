@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Currency & Temp Converter Demo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossOrigin="anonymous" src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossOrigin="anonymous" src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script crossOrigin="anonymous" src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    body { background-color: #f3f4f6; font-family: 'Arial', sans-serif; }
+    .panel { transition: all 0.3s ease; }
+    .panel[open] { max-height: 500px; }
+    .panel:not([open]) { max-height: 0; overflow: hidden; }
+  </style>
+</head>
+<body class="p-6">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const App = () => {
+      const [convertResult, setConvertResult] = React.useState(null);
+      const [ratesResult, setRatesResult] = React.useState(null);
+      const [tempResult, setTempResult] = React.useState(null);
+      const [calcResult, setCalcResult] = React.useState(null);
+
+      const apiCall = async (url, method, body) => {
+        const response = await fetch(`${url}`, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: body ? JSON.stringify(body) : null,
+        });
+        return response.json();
+      };
+
+      const handleConvert = async (e) => {
+        e.preventDefault();
+        const data = {
+          from_currency: e.target.from_currency.value,
+          to_currency: e.target.to_currency.value,
+          amount: parseFloat(e.target.amount.value),
+        };
+        const result = await apiCall('/convert', 'POST', data);
+        setConvertResult(result);
+      };
+
+      const handleRates = async (e) => {
+        e.preventDefault();
+        const data = { base_currency: e.target.base_currency.value };
+        const result = await apiCall(`/rates?base_currency=${data.base_currency}`, 'GET');
+        setRatesResult(result);
+      };
+
+      const handleTempConvert = async (e) => {
+        e.preventDefault();
+        const data = {
+          from_unit: e.target.from_unit.value,
+          to_unit: e.target.to_unit.value,
+          value: parseFloat(e.target.value.value),
+        };
+        const result = await apiCall('/convert_temp', 'POST', data);
+        setTempResult(result);
+      };
+
+      const handleCalculate = async (e) => {
+        e.preventDefault();
+        const data = {
+          operation: e.target.operation.value,
+          intA: parseInt(e.target.intA.value),
+          intB: parseInt(e.target.intB.value),
+        };
+        const result = await apiCall('/calculate', 'POST', data);
+        setCalcResult(result);
+      };
+
+      return (
+        <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-6 space-y-6">
+          <h1 className="text-3xl font-bold text-gray-800 text-center">SOAP Service Demo: Travel Necessities</h1>
+
+          {/* Currency Conversion */}
+          <details className="panel" open>
+            <summary className="cursor-pointer text-xl font-semibold text-indigo-600 bg-gray-100 p-3 rounded-md">Currency Conversion</summary>
+            <form onSubmit={handleConvert} className="mt-4 space-y-4">
+              <div>
+                <label className="block text-gray-700">From Currency</label>
+                <input name="from_currency" className="w-full p-2 border rounded" defaultValue="USD" />
+              </div>
+              <div>
+                <label className="block text-gray-700">To Currency</label>
+                <input name="to_currency" className="w-full p-2 border rounded" defaultValue="EUR" />
+              </div>
+              <div>
+                <label className="block text-gray-700">Amount</label>
+                <input type="number" name="amount" className="w-full p-2 border rounded" defaultValue="100" step="0.01" />
+              </div>
+              <button type="submit" className="w-full bg-indigo-600 text-white p-2 rounded hover:bg-indigo-700">Convert</button>
+            </form>
+            {convertResult && convertResult.result && (
+              <div className="mt-4 p-3 bg-gray-50 rounded text-gray-800 font-semibold">
+                {convertResult.amount} {convertResult.from_currency} = {convertResult.result} {convertResult.to_currency}
+              </div>
+            )}
+          </details>
+
+          {/* Exchange Rates */}
+          <details className="panel" open>
+            <summary className="cursor-pointer text-xl font-semibold text-indigo-600 bg-gray-100 p-3 rounded-md">Exchange Rates</summary>
+            <form onSubmit={handleRates} className="mt-4 space-y-4">
+              <div>
+                <label className="block text-gray-700">Base Currency</label>
+                <input name="base_currency" className="w-full p-2 border rounded" defaultValue="USD" />
+              </div>
+              <button type="submit" className="w-full bg-indigo-600 text-white p-2 rounded hover:bg-indigo-700">Get Rates</button>
+            </form>
+            {ratesResult && ratesResult.rates && (
+              <div className="mt-4 p-3 bg-gray-50 rounded text-gray-800">
+                <p className="font-semibold">Exchange Rates (Base: {ratesResult.base_currency})</p>
+                <ul className="list-disc ml-5">
+                  {Object.entries(ratesResult.rates).map(([currency, rate]) => (
+                    <li key={currency}>{currency}: {rate}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </details>
+
+          {/* Temperature Conversion */}
+          <details className="panel" open>
+            <summary className="cursor-pointer text-xl font-semibold text-indigo-600 bg-gray-100 p-3 rounded-md">Temperature Conversion</summary>
+            <form onSubmit={handleTempConvert} className="mt-4 space-y-4">
+              <div>
+                <label className="block text-gray-700">From Unit</label>
+                <select name="from_unit" className="w-full p-2 border rounded">
+                  <option value="C">Celsius</option>
+                  <option value="F">Fahrenheit</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-gray-700">To Unit</label>
+                <select name="to_unit" className="w-full p-2 border rounded">
+                  <option value="F">Fahrenheit</option>
+                  <option value="C">Celsius</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-gray-700">Value</label>
+                <input type="number" name="value" className="w-full p-2 border rounded" defaultValue="0" step="0.1" />
+              </div>
+              <button type="submit" className="w-full bg-indigo-600 text-white p-2 rounded hover:bg-indigo-700">Convert</button>
+            </form>
+            {tempResult && tempResult.result && (
+              <div className="mt-4 p-3 bg-gray-50 rounded text-gray-800 font-semibold">
+                {tempResult.value}°{tempResult.from_unit} = {tempResult.result}°{tempResult.to_unit}
+              </div>
+            )}
+          </details>
+
+          {/* Calculator */}
+          <details className="panel" open>
+            <summary className="cursor-pointer text-xl font-semibold text-indigo-600 bg-gray-100 p-3 rounded-md">Calculator</summary>
+            <form onSubmit={handleCalculate} className="mt-4 space-y-4">
+              <div>
+                <label className="block text-gray-700">Operation</label>
+                <select name="operation" className="w-full p-2 border rounded">
+                  <option value="add">Add</option>
+                  <option value="subtract">Subtract</option>
+                  <option value="multiply">Multiply</option>
+                  <option value="divide">Divide</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-gray-700">First Number</label>
+                <input type="number" name="intA" className="w-full p-2 border rounded" defaultValue="5" />
+              </div>
+              <div>
+                <label className="block text-gray-700">Second Number</label>
+                <input type="number" name="intB" className="w-full p-2 border rounded" defaultValue="3" />
+              </div>
+              <button type="submit" className="w-full bg-indigo-600 text-white p-2 rounded hover:bg-indigo-700">Calculate</button>
+            </form>
+            {calcResult && calcResult.result !== undefined && (
+              <div className="mt-4 p-3 bg-gray-50 rounded text-gray-800 font-semibold">
+                {calcResult.intA} {calcResult.operation} {calcResult.intB} = {calcResult.result}
+              </div>
+            )}
+          </details>
+        </div>
+      );
+    };
+
+    ReactDOM.render(<App />, document.getElementById('root'));
+  </script>
+</body>
+</html>
